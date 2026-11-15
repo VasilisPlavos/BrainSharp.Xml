@@ -1,4 +1,5 @@
-dotnet build
+dotnet build -c Release
+dotnet test
 dotnet publish
 dotnet pack
-dotnet nuget push .\bin\Release\BrainSharp.Xml.1.0.2.nupkg --api-key <key-here> --source https://api.nuget.org/v3/index.json
+dotnet nuget push .\bin\Release\BrainSharp.Xml.1.1.0.nupkg --api-key <key-here> --source https://api.nuget.org/v3/index.json

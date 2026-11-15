@@ -45,8 +45,8 @@ namespace BrainSharp.Xml.Test
         public void ExplainDifference_XDocuments_157Differences()
         {
             // Arrange
-            var filePath1 = $@"{AppContext.BaseDirectory}Files\products1.xml";
-            var filePath2 = $@"{AppContext.BaseDirectory}\Files\products2.xml";
+            var filePath1 = $@"{AppContext.BaseDirectory}/Files/products1.xml";
+            var filePath2 = $@"{AppContext.BaseDirectory}/Files/products2.xml";
             var xdoc1 = Xml.ParseFromFile(filePath1);
             var xdoc2 = Xml.ParseFromFile(filePath2);
 
@@ -61,8 +61,8 @@ namespace BrainSharp.Xml.Test
         public async Task ExplainDifferenceFromFileAsync_TwoFiles_157Differences()
         {
             // Arrange
-            var filePath1 = $@"{AppContext.BaseDirectory}\Files\products1.xml";
-            var filePath2 = $@"{AppContext.BaseDirectory}\Files\products2.xml";
+            var filePath1 = $@"{AppContext.BaseDirectory}/Files/products1.xml";
+            var filePath2 = $@"{AppContext.BaseDirectory}/Files/products2.xml";
 
             // Act
             var listOfDifferences = await Xml.ExplainDifferenceFromFilesAsync(filePath1, filePath2);
@@ -77,8 +77,8 @@ namespace BrainSharp.Xml.Test
         public void ExplainDifferenceFromFile_TwoFiles_XDifferences(string fileName1, string fileName2, int expectedNumberOfDifferences)
         {
             // Arrange
-            var filePath1 = $@"{AppContext.BaseDirectory}\Files\{fileName1}";
-            var filePath2 = $@"{AppContext.BaseDirectory}\Files\{fileName2}";
+            var filePath1 = $@"{AppContext.BaseDirectory}/Files/{fileName1}";
+            var filePath2 = $@"{AppContext.BaseDirectory}/Files/{fileName2}";
 
             // Act
             var listOfDifferences = Xml.ExplainDifferenceFromFiles(filePath1, filePath2);
@@ -95,7 +95,7 @@ namespace BrainSharp.Xml.Test
         //public async Task ExplainDifferenceFromFile_1File_0Differences()
         //{
         //    // Arrange
-        //    var filePath1 = $@"{AppContext.BaseDirectory}\Files\products1.xml";
+        //    var filePath1 = $@"{AppContext.BaseDirectory}/Files/products1.xml";
         //    var doc1 = Xml.ParseFromFile(filePath1);
         //    var doc2 = await Xml.ParseFromFileAsyncReal(filePath1);
 
@@ -110,7 +110,7 @@ namespace BrainSharp.Xml.Test
         public void IsEqual_XDocuments_Succeed()
         {
             // Arrange
-            var xdoc = Xml.ParseFromFile($@"{AppContext.BaseDirectory}\Files\products1.xml");
+            var xdoc = Xml.ParseFromFile($@"{AppContext.BaseDirectory}/Files/products1.xml");
 
             // Act
             var isEqual = Xml.IsEqual(xdoc, xdoc);
@@ -157,7 +157,7 @@ namespace BrainSharp.Xml.Test
         public void ParseFromFile_File_Succeed()
         {
             // Arrange
-            var filePath = $@"{AppContext.BaseDirectory}\Files\products1.xml";
+            var filePath = $@"{AppContext.BaseDirectory}/Files/products1.xml";
 
             // Act
             var xDocument = Xml.ParseFromFile(filePath);
@@ -170,7 +170,7 @@ namespace BrainSharp.Xml.Test
         public async Task ParseFromFileAsync_File_Failed()
         {
             // Arrange
-            var filePath = $@"{AppContext.BaseDirectory}\Files\wrongfilename.xml";
+            var filePath = $@"{AppContext.BaseDirectory}/Files/wrongfilename.xml";
             XDocument? xDocument = null;
 
             // Act
@@ -238,7 +238,7 @@ namespace BrainSharp.Xml.Test
         [Test]
         public async Task ParseFromFileAsync_SameFile_EqualsSyncParse()
         {
-            var filePath = $@"{AppContext.BaseDirectory}\Files\products1.xml";
+            var filePath = $@"{AppContext.BaseDirectory}/Files/products1.xml";
             var sync = Xml.ParseFromFile(filePath);
             var async = await Xml.ParseFromFileAsync(filePath);
             Assert.That(XNode.DeepEquals(sync.Root, async.Root), Is.True);
@@ -247,14 +247,14 @@ namespace BrainSharp.Xml.Test
         [Test]
         public void ParseFromFileAsync_MissingFile_Throws()
         {
-            var filePath = $@"{AppContext.BaseDirectory}\Files\does-not-exist.xml";
+            var filePath = $@"{AppContext.BaseDirectory}/Files/does-not-exist.xml";
             Assert.ThrowsAsync<FileNotFoundException>(async () => await Xml.ParseFromFileAsync(filePath));
         }
 
         [Test]
         public void ParseFromFileAsync_CancelledToken_Throws()
         {
-            var filePath = $@"{AppContext.BaseDirectory}\Files\products1.xml";
+            var filePath = $@"{AppContext.BaseDirectory}/Files/products1.xml";
             using var cts = new CancellationTokenSource();
             cts.Cancel();
             Assert.CatchAsync<OperationCanceledException>(async () => await Xml.ParseFromFileAsync(filePath, cts.Token));
@@ -270,7 +270,7 @@ namespace BrainSharp.Xml.Test
         public async Task ParseFromFileAsync_File_Succeed()
         {
             // Arrange
-            var filePath = $@"{AppContext.BaseDirectory}\Files\products1.xml";
+            var filePath = $@"{AppContext.BaseDirectory}/Files/products1.xml";
 
             // Act
             var xDocument = await Xml.ParseFromFileAsync(filePath);

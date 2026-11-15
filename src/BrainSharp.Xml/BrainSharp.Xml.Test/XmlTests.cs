@@ -42,7 +42,7 @@ namespace BrainSharp.Xml.Test
         }
 
         [Test]
-        public void ExplainDifference_XDocuments_155Differences()
+        public void ExplainDifference_XDocuments_157Differences()
         {
             // Arrange
             var filePath1 = $@"{AppContext.BaseDirectory}Files\products1.xml";
@@ -54,11 +54,11 @@ namespace BrainSharp.Xml.Test
             var listOfDifferences = Xml.ExplainDifference(xdoc1, xdoc2);
 
             // Assert
-            Assert.That(listOfDifferences.Count, Is.EqualTo(155));
+            Assert.That(listOfDifferences.Count, Is.EqualTo(157));
         }
 
         [Test]
-        public async Task ExplainDifferenceFromFileAsync_TwoFiles_155Differences()
+        public async Task ExplainDifferenceFromFileAsync_TwoFiles_157Differences()
         {
             // Arrange
             var filePath1 = $@"{AppContext.BaseDirectory}\Files\products1.xml";
@@ -68,12 +68,12 @@ namespace BrainSharp.Xml.Test
             var listOfDifferences = await Xml.ExplainDifferenceFromFilesAsync(filePath1, filePath2);
 
             // Assert
-            Assert.That(listOfDifferences.Count, Is.EqualTo(155));
+            Assert.That(listOfDifferences.Count, Is.EqualTo(157));
         }
 
         [Test]
-        [TestCase("products1.xml", "products2.xml", 155)]
-        [TestCase("products3a.xml", "products3b.xml", 1)] // TODO: This should return 1. Fix it
+        [TestCase("products1.xml", "products2.xml", 157)]
+        [TestCase("products3a.xml", "products3b.xml", 1)]
         public void ExplainDifferenceFromFile_TwoFiles_XDifferences(string fileName1, string fileName2, int expectedNumberOfDifferences)
         {
             // Arrange
@@ -185,6 +185,44 @@ namespace BrainSharp.Xml.Test
 
             // Assert
             Assert.Null(xDocument);
+        }
+
+        [Test]
+        public void ExplainDifference_FirstHasExtraSibling_ReturnsOne()
+        {
+            var differences = Xml.ExplainDifference("<r><a id=\"1\"/><a id=\"2\"/></r>", "<r><a id=\"2\"/></r>");
+            Assert.That(differences.Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ExplainDifference_SecondHasExtraSiblingOfSameName_ReturnsOne()
+        {
+            var differences = Xml.ExplainDifference("<r><a id=\"2\"/></r>", "<r><a id=\"1\"/><a id=\"2\"/></r>");
+            Assert.That(differences.Count, Is.EqualTo(1));
+            Assert.That(differences[0], Does.StartWith("Missing child node on first xml"));
+        }
+
+        [Test]
+        public void ExplainDifference_ReorderedSiblings_ReturnsZero()
+        {
+            var differences = Xml.ExplainDifference("<r><a id=\"1\"/><b/></r>", "<r><b/><a id=\"1\"/></r>");
+            Assert.That(differences.Count, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void ExplainDifference_DuplicateSiblings_ReportsOnlySurplus()
+        {
+            var differences = Xml.ExplainDifference("<r><a/><a/></r>", "<r><a/></r>");
+            Assert.That(differences.Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ExplainDifference_SameNameDifferentNamespace_PairedAndReportedAsTagsDiffer()
+        {
+            // Paired by local name (no "Missing child node"), but the namespace difference is still reported
+            var differences = Xml.ExplainDifference("<r><a xmlns=\"urn:x\"/></r>", "<r><a xmlns=\"urn:y\"/></r>");
+            Assert.That(differences.Count, Is.EqualTo(1));
+            Assert.That(differences[0], Does.StartWith("Tags differ"));
         }
 
         [Test]

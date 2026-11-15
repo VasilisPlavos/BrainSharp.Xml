@@ -236,6 +236,15 @@ namespace BrainSharp.Xml.Test
         }
 
         [Test]
+        public void PublicApi_1_0_7_AsyncSignatures_StillExist()
+        {
+            // Binary compatibility: code compiled against 1.0.7 binds to these exact signatures
+            Assert.That(typeof(Xml).GetMethod(nameof(Xml.ParseFromFileAsync), new[] { typeof(string) }), Is.Not.Null);
+            Assert.That(typeof(Xml).GetMethod(nameof(Xml.ExplainDifferenceFromFilesAsync),
+                new[] { typeof(string), typeof(string), typeof(bool) }), Is.Not.Null);
+        }
+
+        [Test]
         public async Task ParseFromFileAsync_SameFile_EqualsSyncParse()
         {
             var filePath = $@"{AppContext.BaseDirectory}/Files/products1.xml";

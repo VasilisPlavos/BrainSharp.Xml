@@ -1,4 +1,4 @@
-﻿﻿using System.Xml.Linq;
+﻿using System.Xml.Linq;
 
 namespace BrainSharp.Xml;
 
@@ -26,7 +26,10 @@ public class Xml
         return CompareNodes(GetRoot(doc1), GetRoot(doc2), ignoreNodeValues);
     }
 
-    public static async Task<List<string>> ExplainDifferenceFromFilesAsync(string file1Path, string file2Path, bool ignoreNodeValues = false, CancellationToken cancellationToken = default)
+    public static Task<List<string>> ExplainDifferenceFromFilesAsync(string file1Path, string file2Path, bool ignoreNodeValues = false)
+        => ExplainDifferenceFromFilesAsync(file1Path, file2Path, ignoreNodeValues, CancellationToken.None);
+
+    public static async Task<List<string>> ExplainDifferenceFromFilesAsync(string file1Path, string file2Path, bool ignoreNodeValues, CancellationToken cancellationToken)
     {
         var doc1 = await ParseFromFileAsync(file1Path, cancellationToken);
         var doc2 = await ParseFromFileAsync(file2Path, cancellationToken);
@@ -56,7 +59,10 @@ public class Xml
         return XDocument.Load(path);
     }
 
-    public static async Task<XDocument> ParseFromFileAsync(string path, CancellationToken cancellationToken = default)
+    public static Task<XDocument> ParseFromFileAsync(string path)
+        => ParseFromFileAsync(path, CancellationToken.None);
+
+    public static async Task<XDocument> ParseFromFileAsync(string path, CancellationToken cancellationToken)
     {
         await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
         return await XDocument.LoadAsync(stream, LoadOptions.None, cancellationToken);

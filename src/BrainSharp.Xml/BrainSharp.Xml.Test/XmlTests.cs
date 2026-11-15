@@ -226,6 +226,37 @@ namespace BrainSharp.Xml.Test
         }
 
         [Test]
+        public async Task ParseFromFileAsync_SameFile_EqualsSyncParse()
+        {
+            var filePath = $@"{AppContext.BaseDirectory}\Files\products1.xml";
+            var sync = Xml.ParseFromFile(filePath);
+            var async = await Xml.ParseFromFileAsync(filePath);
+            Assert.That(XNode.DeepEquals(sync.Root, async.Root), Is.True);
+        }
+
+        [Test]
+        public void ParseFromFileAsync_MissingFile_Throws()
+        {
+            var filePath = $@"{AppContext.BaseDirectory}\Files\does-not-exist.xml";
+            Assert.ThrowsAsync<FileNotFoundException>(async () => await Xml.ParseFromFileAsync(filePath));
+        }
+
+        [Test]
+        public void ParseFromFileAsync_CancelledToken_Throws()
+        {
+            var filePath = $@"{AppContext.BaseDirectory}\Files\products1.xml";
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+            Assert.CatchAsync<OperationCanceledException>(async () => await Xml.ParseFromFileAsync(filePath, cts.Token));
+        }
+
+        [Test]
+        public void ExplainDifference_EmptyDocument_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Xml.ExplainDifference(new XDocument(), new XDocument()));
+        }
+
+        [Test]
         public async Task ParseFromFileAsync_File_Succeed()
         {
             // Arrange

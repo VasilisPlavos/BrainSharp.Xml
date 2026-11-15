@@ -6,33 +6,33 @@ public class Xml
 {
     public static List<string> ExplainDifference(XDocument doc1, XDocument doc2, bool ignoreNodeValues = false)
     {
-        return CompareNodes(doc1.Root, doc2.Root, ignoreNodeValues);
+        return CompareNodes(GetRoot(doc1), GetRoot(doc2), ignoreNodeValues);
     }
 
     public static List<string> ExplainDifference(string xml1Content, string xml2Content, bool ignoreNodeValues = false)
     {
         var doc1 = Parse(xml1Content);
         var doc2 = Parse(xml2Content);
-        return CompareNodes(doc1.Root, doc2.Root, ignoreNodeValues);
+        return CompareNodes(GetRoot(doc1), GetRoot(doc2), ignoreNodeValues);
     }
 
     public static List<string> ExplainDifferenceFromFiles(string file1Path, string file2Path, bool ignoreNodeValues = false)
     {
         var doc1 = ParseFromFile(file1Path);
         var doc2 = ParseFromFile(file2Path);
-        return CompareNodes(doc1.Root, doc2.Root, ignoreNodeValues);
+        return CompareNodes(GetRoot(doc1), GetRoot(doc2), ignoreNodeValues);
     }
 
-    public static async Task<List<string>> ExplainDifferenceFromFilesAsync(string file1Path, string file2Path, bool ignoreNodeValues = false)
+    public static async Task<List<string>> ExplainDifferenceFromFilesAsync(string file1Path, string file2Path, bool ignoreNodeValues = false, CancellationToken cancellationToken = default)
     {
-        var doc1 = await ParseFromFileAsync(file1Path);
-        var doc2 = await ParseFromFileAsync(file2Path);
-        return CompareNodes(doc1.Root, doc2.Root, ignoreNodeValues);
+        var doc1 = await ParseFromFileAsync(file1Path, cancellationToken);
+        var doc2 = await ParseFromFileAsync(file2Path, cancellationToken);
+        return CompareNodes(GetRoot(doc1), GetRoot(doc2), ignoreNodeValues);
     }
 
     public static bool IsEqual(XDocument doc1, XDocument doc2, bool ignoreNodeValues = false)
     {
-        var differences = CompareNodes(doc1.Root, doc2.Root, ignoreNodeValues);
+        var differences = CompareNodes(GetRoot(doc1), GetRoot(doc2), ignoreNodeValues);
         return differences.Count == 0;
     }
 
@@ -53,12 +53,15 @@ public class Xml
         return XDocument.Load(path);
     }
 
-    // TODO: Not working as explected - currently override by sync
-    public static async Task<XDocument> ParseFromFileAsync(string path)
+    public static async Task<XDocument> ParseFromFileAsync(string path, CancellationToken cancellationToken = default)
     {
-        return ParseFromFile(path);
-    //    var stream = XmlReader.Create(path, new XmlReaderSettings { Async = true });
-    //    return await XDocument.LoadAsync(stream, loadOptions, cancellationToken);
+        await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
+        return await XDocument.LoadAsync(stream, LoadOptions.None, cancellationToken);
+    }
+
+    private static XElement GetRoot(XDocument doc)
+    {
+        return doc.Root ?? throw new ArgumentException("The XML document has no root element.", nameof(doc));
     }
 
     private static List<string> CompareNodes(XElement node1, XElement node2, bool ignoreNodeValues = false)

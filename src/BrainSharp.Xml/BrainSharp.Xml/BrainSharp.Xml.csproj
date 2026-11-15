@@ -5,15 +5,15 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Title>A library to handle XML files</Title>
     <Description>Handle and compare xml file easily</Description>
-    <PackageProjectUrl>https://github.com/VasilisPlavos/Learn/tree/main/dotnet/NuGets/BrainSharp.Xml</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/VasilisPlavos/Learn/tree/main/dotnet/NuGets/BrainSharp.Xml</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/VasilisPlavos/BrainSharp.Xml</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/VasilisPlavos/BrainSharp.Xml</RepositoryUrl>
     <PackageTags>xml xmldiff xmlpatch compare-xml xml-differences</PackageTags>
-    <PackageReleaseNotes>Support XmlDiff and XmlPatch</PackageReleaseNotes>
+    <PackageReleaseNotes>Fix child matching (#1), faster comparison, true async file parsing, Xml constructor obsolete (static class in 2.0.0), correct repository URL.</PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>BrainSharp.Xml</PackageId>
-    <Version>1.0.7</Version>
+    <Version>1.1.0</Version>
     <Authors>Vasilis Plavos</Authors>
     <Company>BrainSharp</Company>
   </PropertyGroup>
@@ -25,7 +25,7 @@
 
 
   <ItemGroup>
-    <PackageReference Include="BrainSharp.XmlDiff" Version="1.0.1" />
+    <PackageReference Include="BrainSharp.XmlDiff" Version="1.0.6" />
   </ItemGroup>
 
 </Project>

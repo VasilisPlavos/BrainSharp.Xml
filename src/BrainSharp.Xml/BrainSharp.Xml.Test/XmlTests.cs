@@ -42,11 +42,11 @@ namespace BrainSharp.Xml.Test
         }
 
         [Test]
-        public void ExplainDifference_XDocuments_155Differences()
+        public void ExplainDifference_XDocuments_157Differences()
         {
             // Arrange
-            var filePath1 = $@"{AppContext.BaseDirectory}Files\products1.xml";
-            var filePath2 = $@"{AppContext.BaseDirectory}\Files\products2.xml";
+            var filePath1 = $@"{AppContext.BaseDirectory}/Files/products1.xml";
+            var filePath2 = $@"{AppContext.BaseDirectory}/Files/products2.xml";
             var xdoc1 = Xml.ParseFromFile(filePath1);
             var xdoc2 = Xml.ParseFromFile(filePath2);
 
@@ -54,31 +54,31 @@ namespace BrainSharp.Xml.Test
             var listOfDifferences = Xml.ExplainDifference(xdoc1, xdoc2);
 
             // Assert
-            Assert.That(listOfDifferences.Count, Is.EqualTo(155));
+            Assert.That(listOfDifferences.Count, Is.EqualTo(157));
         }
 
         [Test]
-        public async Task ExplainDifferenceFromFileAsync_TwoFiles_155Differences()
+        public async Task ExplainDifferenceFromFileAsync_TwoFiles_157Differences()
         {
             // Arrange
-            var filePath1 = $@"{AppContext.BaseDirectory}\Files\products1.xml";
-            var filePath2 = $@"{AppContext.BaseDirectory}\Files\products2.xml";
+            var filePath1 = $@"{AppContext.BaseDirectory}/Files/products1.xml";
+            var filePath2 = $@"{AppContext.BaseDirectory}/Files/products2.xml";
 
             // Act
             var listOfDifferences = await Xml.ExplainDifferenceFromFilesAsync(filePath1, filePath2);
 
             // Assert
-            Assert.That(listOfDifferences.Count, Is.EqualTo(155));
+            Assert.That(listOfDifferences.Count, Is.EqualTo(157));
         }
 
         [Test]
-        [TestCase("products1.xml", "products2.xml", 155)]
-        [TestCase("products3a.xml", "products3b.xml", 1)] // TODO: This should return 1. Fix it
+        [TestCase("products1.xml", "products2.xml", 157)]
+        [TestCase("products3a.xml", "products3b.xml", 1)]
         public void ExplainDifferenceFromFile_TwoFiles_XDifferences(string fileName1, string fileName2, int expectedNumberOfDifferences)
         {
             // Arrange
-            var filePath1 = $@"{AppContext.BaseDirectory}\Files\{fileName1}";
-            var filePath2 = $@"{AppContext.BaseDirectory}\Files\{fileName2}";
+            var filePath1 = $@"{AppContext.BaseDirectory}/Files/{fileName1}";
+            var filePath2 = $@"{AppContext.BaseDirectory}/Files/{fileName2}";
 
             // Act
             var listOfDifferences = Xml.ExplainDifferenceFromFiles(filePath1, filePath2);
@@ -95,7 +95,7 @@ namespace BrainSharp.Xml.Test
         //public async Task ExplainDifferenceFromFile_1File_0Differences()
         //{
         //    // Arrange
-        //    var filePath1 = $@"{AppContext.BaseDirectory}\Files\products1.xml";
+        //    var filePath1 = $@"{AppContext.BaseDirectory}/Files/products1.xml";
         //    var doc1 = Xml.ParseFromFile(filePath1);
         //    var doc2 = await Xml.ParseFromFileAsyncReal(filePath1);
 
@@ -110,7 +110,7 @@ namespace BrainSharp.Xml.Test
         public void IsEqual_XDocuments_Succeed()
         {
             // Arrange
-            var xdoc = Xml.ParseFromFile($@"{AppContext.BaseDirectory}\Files\products1.xml");
+            var xdoc = Xml.ParseFromFile($@"{AppContext.BaseDirectory}/Files/products1.xml");
 
             // Act
             var isEqual = Xml.IsEqual(xdoc, xdoc);
@@ -157,7 +157,7 @@ namespace BrainSharp.Xml.Test
         public void ParseFromFile_File_Succeed()
         {
             // Arrange
-            var filePath = $@"{AppContext.BaseDirectory}\Files\products1.xml";
+            var filePath = $@"{AppContext.BaseDirectory}/Files/products1.xml";
 
             // Act
             var xDocument = Xml.ParseFromFile(filePath);
@@ -170,7 +170,7 @@ namespace BrainSharp.Xml.Test
         public async Task ParseFromFileAsync_File_Failed()
         {
             // Arrange
-            var filePath = $@"{AppContext.BaseDirectory}\Files\wrongfilename.xml";
+            var filePath = $@"{AppContext.BaseDirectory}/Files/wrongfilename.xml";
             XDocument? xDocument = null;
 
             // Act
@@ -188,10 +188,98 @@ namespace BrainSharp.Xml.Test
         }
 
         [Test]
+        public void ExplainDifference_FirstHasExtraSibling_ReturnsOne()
+        {
+            var differences = Xml.ExplainDifference("<r><a id=\"1\"/><a id=\"2\"/></r>", "<r><a id=\"2\"/></r>");
+            Assert.That(differences.Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ExplainDifference_SecondHasExtraSiblingOfSameName_ReturnsOne()
+        {
+            var differences = Xml.ExplainDifference("<r><a id=\"2\"/></r>", "<r><a id=\"1\"/><a id=\"2\"/></r>");
+            Assert.That(differences.Count, Is.EqualTo(1));
+            Assert.That(differences[0], Does.StartWith("Missing child node on first xml"));
+        }
+
+        [Test]
+        public void ExplainDifference_ReorderedSiblings_ReturnsZero()
+        {
+            var differences = Xml.ExplainDifference("<r><a id=\"1\"/><b/></r>", "<r><b/><a id=\"1\"/></r>");
+            Assert.That(differences.Count, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void ExplainDifference_DuplicateSiblings_ReportsOnlySurplus()
+        {
+            var differences = Xml.ExplainDifference("<r><a/><a/></r>", "<r><a/></r>");
+            Assert.That(differences.Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ExplainDifference_SameNameDifferentNamespace_PairedAndReportedAsTagsDiffer()
+        {
+            // Paired by local name (no "Missing child node"), but the namespace difference is still reported
+            var differences = Xml.ExplainDifference("<r><a xmlns=\"urn:x\"/></r>", "<r><a xmlns=\"urn:y\"/></r>");
+            Assert.That(differences.Count, Is.EqualTo(1));
+            Assert.That(differences[0], Does.StartWith("Tags differ"));
+        }
+
+        [Test]
+        public void Xml_PublicConstructor_IsMarkedObsolete()
+        {
+            var constructor = typeof(Xml).GetConstructor(Type.EmptyTypes);
+            Assert.That(constructor, Is.Not.Null);
+            var obsolete = (ObsoleteAttribute?)Attribute.GetCustomAttribute(constructor!, typeof(ObsoleteAttribute));
+            Assert.That(obsolete, Is.Not.Null);
+            Assert.That(obsolete!.Message, Does.Contain("2.0.0"));
+        }
+
+        [Test]
+        public void PublicApi_1_0_7_AsyncSignatures_StillExist()
+        {
+            // Binary compatibility: code compiled against 1.0.7 binds to these exact signatures
+            Assert.That(typeof(Xml).GetMethod(nameof(Xml.ParseFromFileAsync), new[] { typeof(string) }), Is.Not.Null);
+            Assert.That(typeof(Xml).GetMethod(nameof(Xml.ExplainDifferenceFromFilesAsync),
+                new[] { typeof(string), typeof(string), typeof(bool) }), Is.Not.Null);
+        }
+
+        [Test]
+        public async Task ParseFromFileAsync_SameFile_EqualsSyncParse()
+        {
+            var filePath = $@"{AppContext.BaseDirectory}/Files/products1.xml";
+            var sync = Xml.ParseFromFile(filePath);
+            var async = await Xml.ParseFromFileAsync(filePath);
+            Assert.That(XNode.DeepEquals(sync.Root, async.Root), Is.True);
+        }
+
+        [Test]
+        public void ParseFromFileAsync_MissingFile_Throws()
+        {
+            var filePath = $@"{AppContext.BaseDirectory}/Files/does-not-exist.xml";
+            Assert.ThrowsAsync<FileNotFoundException>(async () => await Xml.ParseFromFileAsync(filePath));
+        }
+
+        [Test]
+        public void ParseFromFileAsync_CancelledToken_Throws()
+        {
+            var filePath = $@"{AppContext.BaseDirectory}/Files/products1.xml";
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+            Assert.CatchAsync<OperationCanceledException>(async () => await Xml.ParseFromFileAsync(filePath, cts.Token));
+        }
+
+        [Test]
+        public void ExplainDifference_EmptyDocument_ThrowsArgumentException()
+        {
+            Assert.Throws<ArgumentException>(() => Xml.ExplainDifference(new XDocument(), new XDocument()));
+        }
+
+        [Test]
         public async Task ParseFromFileAsync_File_Succeed()
         {
             // Arrange
-            var filePath = $@"{AppContext.BaseDirectory}\Files\products1.xml";
+            var filePath = $@"{AppContext.BaseDirectory}/Files/products1.xml";
 
             // Act
             var xDocument = await Xml.ParseFromFileAsync(filePath);

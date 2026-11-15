@@ -4,35 +4,41 @@ namespace BrainSharp.Xml;
 
 public class Xml
 {
+    [Obsolete("Xml will become a static class in 2.0.0. Call the static methods directly.")]
+    public Xml() { }
+
     public static List<string> ExplainDifference(XDocument doc1, XDocument doc2, bool ignoreNodeValues = false)
     {
-        return CompareNodes(doc1.Root, doc2.Root, ignoreNodeValues);
+        return CompareNodes(GetRoot(doc1), GetRoot(doc2), ignoreNodeValues);
     }
 
     public static List<string> ExplainDifference(string xml1Content, string xml2Content, bool ignoreNodeValues = false)
     {
         var doc1 = Parse(xml1Content);
         var doc2 = Parse(xml2Content);
-        return CompareNodes(doc1.Root, doc2.Root, ignoreNodeValues);
+        return CompareNodes(GetRoot(doc1), GetRoot(doc2), ignoreNodeValues);
     }
 
     public static List<string> ExplainDifferenceFromFiles(string file1Path, string file2Path, bool ignoreNodeValues = false)
     {
         var doc1 = ParseFromFile(file1Path);
         var doc2 = ParseFromFile(file2Path);
-        return CompareNodes(doc1.Root, doc2.Root, ignoreNodeValues);
+        return CompareNodes(GetRoot(doc1), GetRoot(doc2), ignoreNodeValues);
     }
 
-    public static async Task<List<string>> ExplainDifferenceFromFilesAsync(string file1Path, string file2Path, bool ignoreNodeValues = false)
+    public static Task<List<string>> ExplainDifferenceFromFilesAsync(string file1Path, string file2Path, bool ignoreNodeValues = false)
+        => ExplainDifferenceFromFilesAsync(file1Path, file2Path, ignoreNodeValues, CancellationToken.None);
+
+    public static async Task<List<string>> ExplainDifferenceFromFilesAsync(string file1Path, string file2Path, bool ignoreNodeValues, CancellationToken cancellationToken)
     {
-        var doc1 = await ParseFromFileAsync(file1Path);
-        var doc2 = await ParseFromFileAsync(file2Path);
-        return CompareNodes(doc1.Root, doc2.Root, ignoreNodeValues);
+        var doc1 = await ParseFromFileAsync(file1Path, cancellationToken);
+        var doc2 = await ParseFromFileAsync(file2Path, cancellationToken);
+        return CompareNodes(GetRoot(doc1), GetRoot(doc2), ignoreNodeValues);
     }
 
     public static bool IsEqual(XDocument doc1, XDocument doc2, bool ignoreNodeValues = false)
     {
-        var differences = CompareNodes(doc1.Root, doc2.Root, ignoreNodeValues);
+        var differences = CompareNodes(GetRoot(doc1), GetRoot(doc2), ignoreNodeValues);
         return differences.Count == 0;
     }
 
@@ -53,12 +59,18 @@ public class Xml
         return XDocument.Load(path);
     }
 
-    // TODO: Not working as explected - currently override by sync
-    public static async Task<XDocument> ParseFromFileAsync(string path)
+    public static Task<XDocument> ParseFromFileAsync(string path)
+        => ParseFromFileAsync(path, CancellationToken.None);
+
+    public static async Task<XDocument> ParseFromFileAsync(string path, CancellationToken cancellationToken)
     {
-        return ParseFromFile(path);
-    //    var stream = XmlReader.Create(path, new XmlReaderSettings { Async = true });
-    //    return await XDocument.LoadAsync(stream, loadOptions, cancellationToken);
+        await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
+        return await XDocument.LoadAsync(stream, LoadOptions.None, cancellationToken);
+    }
+
+    private static XElement GetRoot(XDocument doc)
+    {
+        return doc.Root ?? throw new ArgumentException("The XML document has no root element.", nameof(doc));
     }
 
     private static List<string> CompareNodes(XElement node1, XElement node2, bool ignoreNodeValues = false)
@@ -71,10 +83,9 @@ public class Xml
             return differences;
         }
 
-        var childNodes1 = node1.Nodes().ToList();
-        var childNodes2 = node2.Nodes().ToList();
-
-        if (!ignoreNodeValues && childNodes1.Count == 1)
+        // Text comparison only applies when the first node has exactly one child node
+        var firstChild = node1.FirstNode;
+        if (!ignoreNodeValues && firstChild != null && firstChild.NextNode == null)
         {
             if (node1.Value.Trim() != node2.Value.Trim())
             {
@@ -88,60 +99,90 @@ public class Xml
 
         foreach (var attr1 in node1Attributes)
         {
-            var attr2 = node2Attributes.FirstOrDefault(x => x.Key == attr1.Key);
-            if (attr2.Key == null)
+            if (!node2Attributes.TryGetValue(attr1.Key, out var attr2Value))
             {
                 differences.Add($"Missing attribute on second xml {attr1.Key}");
                 continue;
             }
 
-            if (attr1.Value != attr2.Value)
+            if (attr1.Value != attr2Value)
             {
-                differences.Add($"Attributes differ on key {attr1.Key} with values {attr1.Value} vs {attr2.Value}");
+                differences.Add($"Attributes differ on key {attr1.Key} with values {attr1.Value} vs {attr2Value}");
             }
         }
 
         foreach (var attr2 in node2Attributes)
         {
-            var exist = node1Attributes.Any(x => x.Key == attr2.Key);
-            if (!exist)
+            if (!node1Attributes.ContainsKey(attr2.Key))
             {
                 differences.Add($"Missing attribute on first xml {attr2.Key}");
             }
         }
 
-        // Compare child nodes recursively
-        foreach (var xNode1 in childNodes1.OfType<XElement>())
-        {
-            var xNode2 = FindNode(childNodes2, xNode1);
-            if (xNode2 == null)
-            {
-                differences.Add($"Missing child node on second xml: {xNode1.Name}");
-                continue;
-            }
-
-            childNodes2.Remove(xNode2);
-            var childNodesDifferences = CompareNodes(xNode1, xNode2, ignoreNodeValues);
-            differences.AddRange(childNodesDifferences);
-        }
-
-        foreach (var xNode2 in childNodes2.OfType<XElement>())
-        {
-            var exist = childNodes1.OfType<XElement>().Any(x => x.Name.LocalName == xNode2.Name.LocalName);
-            if (!exist)
-            {
-                differences.Add($"Missing child node on first xml: {xNode2.Name}");
-            }
-        }
-
+        CompareChildElements(node1, node2, ignoreNodeValues, differences);
         return differences;
     }
 
-    static XElement FindNode(List<XNode> childNodes2, XElement xNode1)
+    /// <summary>
+    /// Pairs the child elements of both nodes in two passes: first identical elements,
+    /// then (for what is left) elements with the same local name. Namespaces are ignored on the second pass.
+    /// </summary>
+    private static void CompareChildElements(XElement node1, XElement node2, bool ignoreNodeValues, List<string> differences)
     {
-        var xElement = childNodes2.OfType<XElement>().FirstOrDefault(x => x.ToString() == xNode1.ToString());
-        xElement ??= childNodes2.OfType<XElement>().FirstOrDefault(x => x.Name.LocalName == xNode1.Name.LocalName);
-        return xElement;
-    }
+        var elements1 = node1.Elements().ToList();
+        var elements2 = node2.Elements().ToList();
+        if (elements1.Count == 0 && elements2.Count == 0) return;
 
+        var pool = new Dictionary<string, List<XElement>>();
+        foreach (var element in elements2)
+        {
+            if (!pool.TryGetValue(element.Name.LocalName, out var group))
+            {
+                pool[element.Name.LocalName] = group = new List<XElement>();
+            }
+            group.Add(element);
+        }
+
+        // Pass 1: identical elements need no further comparison
+        var unpaired = new List<XElement>();
+        foreach (var element1 in elements1)
+        {
+            var matched = false;
+            if (pool.TryGetValue(element1.Name.LocalName, out var group))
+            {
+                var index = group.FindIndex(x => XNode.DeepEquals(x, element1));
+                if (index >= 0)
+                {
+                    group.RemoveAt(index);
+                    matched = true;
+                }
+            }
+
+            if (!matched) unpaired.Add(element1);
+        }
+
+        // Pass 2: same local name, compare recursively
+        foreach (var element1 in unpaired)
+        {
+            if (!pool.TryGetValue(element1.Name.LocalName, out var group) || group.Count == 0)
+            {
+                differences.Add($"Missing child node on second xml: {element1.Name}");
+                continue;
+            }
+
+            var element2 = group[0];
+            group.RemoveAt(0);
+            differences.AddRange(CompareNodes(element1, element2, ignoreNodeValues));
+        }
+
+        // Whatever is left in the second xml has no counterpart in the first
+        var leftovers = new HashSet<XElement>(pool.Values.SelectMany(g => g));
+        foreach (var element2 in elements2)
+        {
+            if (leftovers.Contains(element2))
+            {
+                differences.Add($"Missing child node on first xml: {element2.Name}");
+            }
+        }
+    }
 }

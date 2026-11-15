@@ -226,6 +226,16 @@ namespace BrainSharp.Xml.Test
         }
 
         [Test]
+        public void Xml_PublicConstructor_IsMarkedObsolete()
+        {
+            var constructor = typeof(Xml).GetConstructor(Type.EmptyTypes);
+            Assert.That(constructor, Is.Not.Null);
+            var obsolete = (ObsoleteAttribute?)Attribute.GetCustomAttribute(constructor!, typeof(ObsoleteAttribute));
+            Assert.That(obsolete, Is.Not.Null);
+            Assert.That(obsolete!.Message, Does.Contain("2.0.0"));
+        }
+
+        [Test]
         public async Task ParseFromFileAsync_SameFile_EqualsSyncParse()
         {
             var filePath = $@"{AppContext.BaseDirectory}\Files\products1.xml";

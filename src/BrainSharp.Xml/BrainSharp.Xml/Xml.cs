@@ -4,6 +4,9 @@ namespace BrainSharp.Xml;
 
 public class Xml
 {
+    [Obsolete("Xml will become a static class in 2.0.0. Call the static methods directly.")]
+    public Xml() { }
+
     public static List<string> ExplainDifference(XDocument doc1, XDocument doc2, bool ignoreNodeValues = false)
     {
         return CompareNodes(GetRoot(doc1), GetRoot(doc2), ignoreNodeValues);
